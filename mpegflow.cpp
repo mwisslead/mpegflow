@@ -307,21 +307,6 @@ void output_vectors_std(int frameIndex, int64_t pts, char pictType, vector<AVMot
 	size_t gridStep = ARG_FORCE_GRID_8 ? 8 : 16;
 	pair<size_t, size_t> shape = make_pair(min(ffmpeg_frameHeight / gridStep, FrameInfo::MAX_GRID_SIZE), min(ffmpeg_frameWidth / gridStep, FrameInfo::MAX_GRID_SIZE));
 
-	if(!prev.empty() && pts != prev.back().Pts + 1)
-	{
-		for(int64_t dummy_pts = prev.back().Pts + 1; dummy_pts < pts; dummy_pts++)
-		{
-			FrameInfo dummy;
-			dummy.FrameIndex = -1;
-			dummy.Pts = dummy_pts;
-			dummy.Origin = "dummy";
-			dummy.PictType = '?';
-			dummy.GridStep = gridStep;
-			dummy.Shape = shape;
-			prev.push_back(dummy);
-		}
-	}
-
 	FrameInfo cur;
 	cur.FrameIndex = frameIndex;
 	cur.Pts = pts;
