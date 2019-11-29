@@ -39,7 +39,7 @@ void draw_arrow(Mat img, Point pStart, Point pEnd, double len, double alphaDegre
 	}
 }
 
-void vis_flow(pair<Mat, int> flow, Mat frame, const char* dumpDir)
+void vis_flow(pair<Mat, int> flow, Mat frame, VideoWriter writer)
 {
 	Mat flowComponents[3];
 	split(flow.first, flowComponents);
@@ -51,20 +51,22 @@ void vis_flow(pair<Mat, int> flow, Mat frame, const char* dumpDir)
 	{
 		for(int j = 0; j < cols; j++)
 		{
-			int dx = flowComponents[0].at<int>(i, j);
-			int dy = flowComponents[1].at<int>(i, j);
+			int dx = flowComponents[0].at<int>(i, j) * 3;
+			int dy = flowComponents[1].at<int>(i, j) * 3;
 			int occupancy = flowComponents[2].at<int>(i, j);
 			
 			Point start(double(j) / cols * img.cols + img.cols / cols / 2, double(i) / rows * img.rows + img.rows / rows / 2);
 			Point end(start.x + dx, start.y + dy);
+
+			int len = (start.x - end.x) * (start.x - end.x) + (start.y - end.y) * (start.y - end.y);
+
+			if (len > 5)
 			
 			draw_arrow(img, start, end, 2.0, 20.0, CV_RGB(255, 0, 0), (occupancy == 1 || occupancy == 2) ? CV_RGB(0, 255, 0) : CV_RGB(0, 255, 255));
 		}
 	}
 	
-	stringstream s;
-	s << dumpDir << "/" << setfill('0') << setw(6) << flow.second << ".png";
-	imwrite(s.str(), img);
+	writer.write(img);
 }
 
 pair<Mat, int> read_flow()
@@ -123,11 +125,20 @@ int main(int argc, const char* argv[])
 	VideoCapture in(ARG_VIDEO_PATH);
 	Mat frame;
 	assert(in.read(frame));
+	VideoWriter writer;
+	fprintf(stderr, "size is %d, %d\n", frame.size().height, frame.size().width);
+	writer.open(ARG_DUMP_DIR, VideoWriter::fourcc('X', '2', '6', '4'), 60.0, frame.size(), true);
+	// check if we succeeded
+	if (!writer.isOpened()) {
+		fprintf(stderr, "Could not open the output video file for write\n");
+		return -1;
+	}
+
 	for(int opencvFrameIndex = 1; in.read(frame); opencvFrameIndex++)
 	{
 		if(opencvFrameIndex == flow.second)
 		{
-			vis_flow(flow, frame, ARG_DUMP_DIR);
+			vis_flow(flow, frame, writer);
 			flow = read_flow();
 		}
 		else
